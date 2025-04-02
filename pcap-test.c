@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
         }
 
         libnet_ethernet_hdr* eth = (libnet_ethernet_hdr*)packet;
-        // Check for IPv4
+        // Check IPv4
         u_int16_t type = ntohs(eth->ether_type);
         if (type != ETHERTYPE_IP)
             continue;
@@ -93,11 +93,11 @@ int main(int argc, char* argv[]) {
         libnet_ipv4_hdr* ip;
         ip = (libnet_ipv4_hdr*)((void*)packet + sizeof(libnet_ethernet_hdr));
 
-        // Calculate IP header length
+       
         int ip_hdr_len = ip->ip_hl;
         ip_hdr_len *= 4;
 
-        // Protocol check (TCP only)
+        // Tcp
         if (ip->ip_p != 0x06)
             continue;
 
@@ -108,7 +108,7 @@ int main(int argc, char* argv[]) {
         int tcp_hdr_len = tcp->th_off;
         tcp_hdr_len *= 4;
 
-        // Payload calculation
+        // Payload
         const u_char* payload;
         payload = ((const u_char*)tcp) + tcp_hdr_len;
 
