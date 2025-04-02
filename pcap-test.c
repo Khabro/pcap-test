@@ -84,21 +84,45 @@ int main(int argc, char* argv[]) {
         }
 
         libnet_ethernet_hdr* eth = (libnet_ethernet_hdr*)packet;
-        if (ntohs(eth->ether_type) != ETHERTYPE_IP) 
-		continue;
+        // Check for IPv4
+        u_int16_t type = ntohs(eth->ether_type);
+        if (type != ETHERTYPE_IP)
+            continue;
 
-        libnet_ipv4_hdr* ip = (libnet_ipv4_hdr*)(packet + sizeof(libnet_ethernet_hdr));
-        int ip_hdr_len = ip->ip_hl * 4;
+        // IPv4 header loc
+        libnet_ipv4_hdr* ip;
+        ip = (libnet_ipv4_hdr*)((void*)packet + sizeof(libnet_ethernet_hdr));
+
+        // Calculate IP header length
+        int ip_hdr_len = ip->ip_hl;
+        ip_hdr_len *= 4;
+
+        // Protocol check (TCP only)
         if (ip->ip_p != 0x06)
-	       	continue; // TCP X
+            continue;
 
-        libnet_tcp_hdr* tcp = (libnet_tcp_hdr*)((u_char*)ip + ip_hdr_len);
-        int tcp_hdr_len = tcp->th_off * 4;
+        // TCP header
+        libnet_tcp_hdr* tcp;
+        tcp = (libnet_tcp_hdr*)((u_char*)ip + ip_hdr_len);
 
-        const u_char* payload = (const u_char*)tcp + tcp_hdr_len;
-        int payload_len = ntohs(ip->ip_len) - ip_hdr_len - tcp_hdr_len;
-        if (payload_len <= 0) payload_len = 0;
-        int max_len = (payload_len > 20) ? 20 : payload_len;
+        int tcp_hdr_len = tcp->th_off;
+        tcp_hdr_len *= 4;
+
+        // Payload calculation
+        const u_char* payload;
+        payload = ((const u_char*)tcp) + tcp_hdr_len;
+
+        int payload_len;
+        payload_len = ntohs(ip->ip_len) - ip_hdr_len - tcp_hdr_len;
+        if (payload_len < 0)
+            payload_len = 0;
+
+        int max_len;
+        if (payload_len > 20)
+            max_len = 20;
+        else
+            max_len = payload_len;
+
 
         printf("\n====== TCP Packet Captured ======\n");
         printf("Src MAC  : %02x:%02x:%02x:%02x:%02x:%02x\n",
